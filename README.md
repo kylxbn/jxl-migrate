@@ -57,4 +57,4 @@ While I can't think of any bad reason (besides having a left-over PNG file conve
 
 GNU General Public License 3 (GPL-3)
 
-Please check LICENSE.md for the complete license.
+Please check `LICENSE` file for the complete license.
