@@ -20,8 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import subprocess
-from subprocess import check_output
 import time
+from multiprocessing import cpu_count
+from multiprocessing.pool import ThreadPool
+from subprocess import check_output
+
+fsbefore = 0
+fsafter = 0
 
 def is_webp_lossless(p):
     res = check_output(args=[
@@ -64,85 +69,88 @@ def decode(p):
         os.utime(res, (time.time(), os.path.getmtime(p)))
         os.remove(p)
         return res
+def handle_file(filename, root):
+    global fsbefore
+    global fsafter
+
+    extension = filename.split('.')[-1].lower()
+    if extension in ['jpg', 'jpeg', 'png', 'apng', 'gif', 'webp']:
+        fullpath = os.path.join(root, filename)
+        filesize = os.path.getsize(fullpath)
+        fsbefore += filesize
+        print('    Found ' + fullpath)
+        if extension in ['jpg', 'jpeg']:
+            print('        Converting JPG to JXL')
+            ret = convert(fullpath)
+            if ret is not None:
+                filesize = os.path.getsize(ret)
+                fsafter += filesize
+            else:
+                print('        Conversion FAILED: ', fullpath)
+        elif extension in ['png']:
+            print('        Converting PNG to JXL')
+            ret = convert(fullpath)
+            if ret is not None:
+                filesize = os.path.getsize(ret)
+                fsafter += filesize
+            else:
+                print('        Conversion FAILED: ', fullpath)
+        elif extension in ['apng']:
+            print('        Converting APNG to JXL')
+            ret = convert(fullpath)
+            if ret is not None:
+                filesize = os.path.getsize(ret)
+                fsafter += filesize
+            else:
+                print('        Conversion FAILED: ', fullpath)
+        elif extension in ['gif']:
+            print('        Converting GIF to JXL')
+            ret = convert(fullpath)
+            if ret is not None:
+                filesize = os.path.getsize(ret)
+                fsafter += filesize
+            else:
+                print('        Conversion FAILED: ', fullpath)
+        elif extension in ['webp']:
+            print('        Converting WebP to PNG')
+            webp_is_lossless = is_webp_lossless(fullpath)
+            ret = decode(fullpath)
+            if ret is not None:
+                if webp_is_lossless:
+                    print('        Converting PNG to JXL (lossless)')
+                    ret = convert(ret)
+                    if ret is not None:
+                        filesize = os.path.getsize(ret)
+                        fsafter += filesize
+                    else:
+                        print('        Conversion FAILED: ', fullpath)
+                else:
+                    print('        Converting PNG to JXL (lossy)')
+                    ret = convert(ret, lossy=True)
+                    if ret is not None:
+                        filesize = os.path.getsize(ret)
+                        fsafter += filesize
+                    else:
+                        print('        Conversion FAILED: ', fullpath)
+            else:
+                print('        Conversion FAILED: ', fullpath)
+    else:
+        print('    Not supported: ' + filename)
+def try_handle_file(filename, root):
+    try:
+        handle_file(filename, root)
+    except Exception as inst:
+        print('Error processing ' + os.path.join(root, filename) + ': ', inst)
 
 def run():
     walk_dir = input('Root: ')
-
-    fsbefore = 0
-    fsafter = 0
-    
+    pool = ThreadPool(cpu_count())
     for root, subdirs, files in os.walk(walk_dir):
-        print("Working on " + root)
         for filename in files:
-            extension = filename.split('.')[-1].lower()
-            if extension in ['jpg', 'jpeg', 'png', 'apng', 'gif', 'webp']:
-                fullpath = os.path.join(root, filename)
-                filesize = os.path.getsize(fullpath)
-                fsbefore += filesize
-                print('    Found ' + filename)
-                if extension in ['jpg', 'jpeg']:
-                    print('        Converting JPG to JXL')
-                    ret = convert(fullpath)
-                    if ret is not None:
-                        filesize = os.path.getsize(ret)
-                        fsafter += filesize
-                        print('        Converted')
-                    else:
-                        print('        Conversion FAILED')
-                elif extension in ['png']:
-                    print('        Converting PNG to JXL')
-                    ret = convert(fullpath)
-                    if ret is not None:
-                        filesize = os.path.getsize(ret)
-                        fsafter += filesize
-                        print('        Converted')
-                    else:
-                        print('        Conversion FAILED')
-                elif extension in ['apng']:
-                    print('        Converting APNG to JXL')
-                    ret = convert(fullpath)
-                    if ret is not None:
-                        filesize = os.path.getsize(ret)
-                        fsafter += filesize
-                        print('        Converted')
-                    else:
-                        print('        Conversion FAILED')
-                elif extension in ['gif']:
-                    print('        Converting GIF to JXL')
-                    ret = convert(fullpath)
-                    if ret is not None:
-                        filesize = os.path.getsize(ret)
-                        fsafter += filesize
-                        print('        Converted')
-                    else:
-                        print('        Conversion FAILED')
-                elif extension in ['webp']:
-                    print('        Converting WebP to PNG')
-                    webp_is_lossless = is_webp_lossless(fullpath)
-                    ret = decode(fullpath)
-                    if ret is not None:
-                        if webp_is_lossless:
-                            print('        Converting PNG to JXL (lossless)')
-                            ret = convert(ret)
-                            if ret is not None:
-                                filesize = os.path.getsize(ret)
-                                fsafter += filesize
-                                print('        Converted')
-                            else:
-                                print('        Conversion FAILED')
-                        else:
-                            print('        Converting PNG to JXL (lossy)')
-                            ret = convert(ret, lossy=True)
-                            if ret is not None:
-                                filesize = os.path.getsize(ret)
-                                fsafter += filesize
-                                print('        Converted')
-                            else:
-                                print('        Conversion FAILED')
-                    else:
-                        print('        Conversion FAILED')                    
-            else:
-                print('    Not supported: ' + filename)
+            pool.apply_async(try_handle_file, (filename, root))
+    pool.close()
+    pool.join()
+
     print('Before conversion: ' + str(fsbefore / 1024) + 'KB')
     print('After conversion: ' + str(fsafter / 1024) + 'KB')
     print('Reduction: ' + str((1 - fsafter / fsbefore) * 100) + '%')
