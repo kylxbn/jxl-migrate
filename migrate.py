@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import subprocess
 from subprocess import check_output
+import time
 
 def is_webp_lossless(p):
     res = check_output(args=[
@@ -43,6 +44,7 @@ def convert(p, lossy=False):
     if proc.returncode != 0 or not os.path.exists(res):
         return None
     else:
+        os.utime(res, (time.time(), os.path.getmtime(p)))
         os.remove(p)
         return res
 
@@ -59,6 +61,7 @@ def decode(p):
     if proc.returncode != 0 or not os.path.exists(res):
         return None
     else:
+        os.utime(res, (time.time(), os.path.getmtime(p)))
         os.remove(p)
         return res
 
