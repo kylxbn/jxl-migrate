@@ -51,8 +51,6 @@ Thank you very much to everyone who contributed code to this humble Python scrip
 
 While I did use this script to migrate my entire image folder and did not notice any issues, I still cannot guarantee that the error handling in this script is perfect and I can't help it if files get lost or damaged or anything. I cannot take responsibility for that. I did my best to avoid that, since I actually intend to use this script myself, but you never know.
 
-Also, while `cjxl` itself will convert using multiple threads, this script does not support multithreading at all so expect that images will be processed one by one.
-
 The detection of file format is done purely by file extension (not case sensitive), so in case a file ends with (for example) `.jpg` but is not actually an image, then the script will be confused and try to convert it. However, `cjxl` should fail and the script should detect that. In that case, the original (impostor) `.jpg` file will not be deleted. At least that's how I intended it to function.
 
 The script runs assuming you have all requirements satisfied and does not check if there are missing requirements. If a requirement is missing, the script might throw an error and crash. So make sure you have all requirements before running this script.
