@@ -41,6 +41,12 @@ python migrate.py
 
 I welcome any pull requests that will improve the script. Please feel free to submit pull requests and I'll check them out. There is no coding guide, no rules to follow. As long as you tested your pull request and it works, just submit it! Thanks!
 
+### Contributors!
+
+Thank you very much to everyone who contributed code to this humble Python script. I really appreciate it, and I'm sure everyone trying to adopt JPEG XL appreciates it, too!
+
+[perk11](https://github.com/perk11) - Keep original file mtime in converted JXL, implement multithreading ([#6](https://github.com/kylxbn/jxl-migrate/pull/6))
+
 ## Disclaimer
 
 While I did use this script to migrate my entire image folder and did not notice any issues, I still cannot guarantee that the error handling in this script is perfect and I can't help it if files get lost or damaged or anything. I cannot take responsibility for that. I did my best to avoid that, since I actually intend to use this script myself, but you never know.
