@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+version = 'v0.2'
+
 '''
 jxl-migrate - Convert images to JPEG XL (JXL) format
 Copyright (C) 2021-present Kyle Alexander Buan
@@ -38,14 +40,16 @@ def is_webp_lossless(p):
 
     return 'Format: Lossless' in res
 
-def convert(p, lossy=False, remove=False):
+def convert(p, lossy=False, remove=False, losslessjpeg=False):
     res = '.'.join(p.split('.')[0:-1]) + '.jxl'
     proc = subprocess.run(args=[
         'cjxl',
         p,
         res,
         '-d',
-        '1' if lossy else '0'
+        '1' if lossy else '0',
+        '-j',
+        '1' if losslessjpeg else '0'
     ], capture_output=True)
 
     if proc.returncode != 0 or not os.path.exists(res):
@@ -76,16 +80,17 @@ def decode(p, remove=False):
 def handle_file(filename, root):
     global fsbefore
     global fsafter
+    global arguments
 
     extension = filename.split('.')[-1].lower()
-    if extension in ['jpg', 'jpeg', 'png', 'apng', 'gif', 'webp']:
+    if extension in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
         fullpath = os.path.join(root, filename)
         filesize = os.path.getsize(fullpath)
         fsbefore += filesize
         print('    Found ' + fullpath)
         if extension in ['jpg', 'jpeg']:
             print('        Converting JPG to JXL')
-            ret = convert(fullpath, lossy=arguments['lossyjpg'], remove=arguments['delete'])
+            ret = convert(fullpath, lossy=arguments['lossyjpg'], losslessjpeg=not arguments['lossyjpg'], remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -109,7 +114,7 @@ def handle_file(filename, root):
                 print('        Conversion FAILED: ', fullpath)
         elif extension in ['gif']:
             print('        Converting GIF to JXL')
-            ret = convert(fullpath, remove=arguments['delete'])
+            ret = convert(fullpath, lossy=arguments['lossygif'], remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -128,7 +133,7 @@ def handle_file(filename, root):
                     else:
                         print('        Conversion FAILED: ', fullpath)
                 else:
-                    ret = convert(ret, lossy=True)
+                    ret = convert(ret, lossy=True, remove=True)
                     if ret is not None:
                         filesize = os.path.getsize(ret)
                         fsafter += filesize
@@ -143,24 +148,30 @@ def try_handle_file(filename, root):
     try:
         handle_file(filename, root)
     except Exception as inst:
-        print('Error processing ' + os.path.join(root, filename) + ': ', inst)
+        print('Error processing ' + os.path.join(root, filename) + ': ', repr(inst))
 
 def run():
+    global arguments
+    global version
+
     print('jxl-migrate - Convert images to JPEG XL (JXL) format\n')
+    print(version)
 
     if len(sys.argv) <= 1:
         print('Program usage:')
-        print('migrate.py [directory] [--delete] [--lossyjpg]\n')
+        print('migrate.py [directory] [--delete] [--lossyjpg] [--lossywebp] [--lossygif]\n')
         print('directory: the folder to process')
         print('--delete: delete original source files if conversion succeeded (default FALSE)')
         print('--lossyjpg: convert JPEG files lossily (-d 1) (default FALSE)')
         print('--lossywebp: convert lossless WebP lossily (-d 1) (default FALSE)')
+        print('--lossygif: convert GIF lossily (-d 1) (default FALSE)')
         exit()
 
     arguments = {
         'delete': False,
         'lossyjpg': False,
         'lossywebp': False,
+        'lossygif': False,
         'source': None
     }
 
@@ -172,6 +183,8 @@ def run():
                 arguments['lossyjpg'] = True
             elif arg == '--lossywebp':
                 arguments['lossywebp'] = True
+            elif arg == '--lossygif':
+                arguments['lossygif'] = True
             else:
                 print('Unrecognized flag: ' + arg)
                 exit()
