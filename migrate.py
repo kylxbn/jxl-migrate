@@ -38,7 +38,7 @@ def is_webp_lossless(p):
 
     return 'Format: Lossless' in res
 
-def convert(p, lossy=False):
+def convert(p, lossy=False, remove=False):
     res = '.'.join(p.split('.')[0:-1]) + '.jxl'
     proc = subprocess.run(args=[
         'cjxl',
@@ -52,11 +52,11 @@ def convert(p, lossy=False):
         return None
     else:
         os.utime(res, (time.time(), os.path.getmtime(p)))
-        if arguments['delete']:
+        if remove:
             os.remove(p)
         return res
 
-def decode(p):
+def decode(p, remove=False):
     res = '.'.join(p.split('.')[0:-1]) + '.png'
 
     proc = subprocess.run(args=[
@@ -70,7 +70,8 @@ def decode(p):
         return None
     else:
         os.utime(res, (time.time(), os.path.getmtime(p)))
-        os.remove(p)
+        if remove:
+            os.remove(p)
         return res
 def handle_file(filename, root):
     global fsbefore
@@ -84,7 +85,7 @@ def handle_file(filename, root):
         print('    Found ' + fullpath)
         if extension in ['jpg', 'jpeg']:
             print('        Converting JPG to JXL')
-            ret = convert(fullpath, lossy=config['lossyjpg'])
+            ret = convert(fullpath, lossy=arguments['lossyjpg'], remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -92,7 +93,7 @@ def handle_file(filename, root):
                 print('        Conversion FAILED: ', fullpath)
         elif extension in ['png']:
             print('        Converting PNG to JXL')
-            ret = convert(fullpath)
+            ret = convert(fullpath, remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -100,7 +101,7 @@ def handle_file(filename, root):
                 print('        Conversion FAILED: ', fullpath)
         elif extension in ['apng']:
             print('        Converting APNG to JXL')
-            ret = convert(fullpath)
+            ret = convert(fullpath, remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -108,27 +109,25 @@ def handle_file(filename, root):
                 print('        Conversion FAILED: ', fullpath)
         elif extension in ['gif']:
             print('        Converting GIF to JXL')
-            ret = convert(fullpath)
+            ret = convert(fullpath, remove=arguments['delete'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
             else:
                 print('        Conversion FAILED: ', fullpath)
         elif extension in ['webp']:
-            print('        Converting WebP to PNG')
+            print('        Converting WebP to JXL')
             webp_is_lossless = is_webp_lossless(fullpath)
-            ret = decode(fullpath)
+            ret = decode(fullpath, remove=arguments['delete'])
             if ret is not None:
                 if webp_is_lossless:
-                    print('        Converting PNG to JXL (lossless)')
-                    ret = convert(ret)
+                    ret = convert(ret, lossy=arguments['lossywebp'], remove=True)
                     if ret is not None:
                         filesize = os.path.getsize(ret)
                         fsafter += filesize
                     else:
                         print('        Conversion FAILED: ', fullpath)
                 else:
-                    print('        Converting PNG to JXL (lossy)')
                     ret = convert(ret, lossy=True)
                     if ret is not None:
                         filesize = os.path.getsize(ret)
@@ -138,7 +137,8 @@ def handle_file(filename, root):
             else:
                 print('        Conversion FAILED: ', fullpath)
     else:
-        print('    Not supported: ' + filename)
+        if (extension != 'jxl'):
+            print('    Not supported: ' + filename)
 def try_handle_file(filename, root):
     try:
         handle_file(filename, root)
@@ -148,26 +148,30 @@ def try_handle_file(filename, root):
 def run():
     print('jxl-migrate - Convert images to JPEG XL (JXL) format\n')
 
-    if len(sys.argv) == 0:
+    if len(sys.argv) <= 1:
         print('Program usage:')
-        print('migrate.py [directory] [--delete] [--lossyjpg]')
+        print('migrate.py [directory] [--delete] [--lossyjpg]\n')
         print('directory: the folder to process')
-        print('--delete: delete original source files if conversion succeeded')
-        print('--lossyjpg: convert JPEG files lossily (-d 1)')
+        print('--delete: delete original source files if conversion succeeded (default FALSE)')
+        print('--lossyjpg: convert JPEG files lossily (-d 1) (default FALSE)')
+        print('--lossywebp: convert lossless WebP lossily (-d 1) (default FALSE)')
         exit()
 
     arguments = {
         'delete': False,
         'lossyjpg': False,
+        'lossywebp': False,
         'source': None
     }
 
-    for arg in sys.argv:
+    for arg in sys.argv[1:]:
         if arg.startswith('--'):
             if arg == '--delete':
                 arguments['delete'] = True
             elif arg == '--lossyjpg':
                 arguments['lossyjpg'] = True
+            elif arg == '--lossywebp':
+                arguments['lossywebp'] = True
             else:
                 print('Unrecognized flag: ' + arg)
                 exit()
