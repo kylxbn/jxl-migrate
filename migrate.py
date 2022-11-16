@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-import os
+import os, sys
 import subprocess
 import time
 from multiprocessing import cpu_count
@@ -27,6 +27,8 @@ from subprocess import check_output
 
 fsbefore = 0
 fsafter = 0
+
+arguments = {}
 
 def is_webp_lossless(p):
     res = check_output(args=[
@@ -50,7 +52,8 @@ def convert(p, lossy=False):
         return None
     else:
         os.utime(res, (time.time(), os.path.getmtime(p)))
-        os.remove(p)
+        if arguments['delete']:
+            os.remove(p)
         return res
 
 def decode(p):
@@ -81,7 +84,7 @@ def handle_file(filename, root):
         print('    Found ' + fullpath)
         if extension in ['jpg', 'jpeg']:
             print('        Converting JPG to JXL')
-            ret = convert(fullpath)
+            ret = convert(fullpath, lossy=config['lossyjpg'])
             if ret is not None:
                 filesize = os.path.getsize(ret)
                 fsafter += filesize
@@ -143,9 +146,40 @@ def try_handle_file(filename, root):
         print('Error processing ' + os.path.join(root, filename) + ': ', inst)
 
 def run():
-    walk_dir = input('Root: ')
+    print('jxl-migrate - Convert images to JPEG XL (JXL) format\n')
+
+    if len(sys.argv) == 0:
+        print('Program usage:')
+        print('migrate.py [directory] [--delete] [--lossyjpg]')
+        print('directory: the folder to process')
+        print('--delete: delete original source files if conversion succeeded')
+        print('--lossyjpg: convert JPEG files lossily (-d 1)')
+        exit()
+
+    arguments = {
+        'delete': False,
+        'lossyjpg': False,
+        'source': None
+    }
+
+    for arg in sys.argv:
+        if arg.startswith('--'):
+            if arg == '--delete':
+                arguments['delete'] = True
+            elif arg == '--lossyjpg':
+                arguments['lossyjpg'] = True
+            else:
+                print('Unrecognized flag: ' + arg)
+                exit()
+        else:
+            arguments['source'] = arg
+
+    if arguments['source'] is None:
+        print('Missing directory to process.')
+        exit()
+
     pool = ThreadPool(cpu_count())
-    for root, subdirs, files in os.walk(walk_dir):
+    for root, subdirs, files in os.walk(arguments['source']):
         for filename in files:
             pool.apply_async(try_handle_file, (filename, root))
     pool.close()
