@@ -32,7 +32,9 @@ The original source will be deleted if the conversion succeeded.
 
 **NOTE:** `webpinfo` and `dwebp` are not needed as of now since it can't handle WebP images for now.
 
-`jxl-migrate` requires the following. All binaries should be added to the system's `PATH` environment variable so Python can run them.
+All binaries should be added to the system's `PATH` environment variable so `jxlmigrate` can access them. For Windows, this means either adding the `cjxl` binary and needed libraries to the win32 folder, or modifying the PATH environment variable to point to where you extracted the `cjxl` binary. I usually do the latter, with `cjxl` extracted to `C:\bin\cjxl.exe`. For Linux, you can just install `libjxl` using your favorite package manager. For macOS... you can probably use Brew, but don't ask me how.
+
+`jxl-migrate` requires the following. 
 
 * The `cjxl` binary (to actually convert images)
 * The `webpinfo` binary (to check if a WebP is lossless or lossy so that it can convert the file accordingly)
