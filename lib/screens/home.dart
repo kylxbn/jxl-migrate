@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _files.addAll(
           foundFiles.where(filenameExtensionIsImage).map((f) {
             final String extension =
-                getFileExtension(f) == 'jpg' ? 'jpeg' : 'jpeg';
+                getFileExtension(f) == 'jpg' ? 'jpeg' : getFileExtension(f);
             return ImageFile(
               name: basename(f.path),
               path: f.path,

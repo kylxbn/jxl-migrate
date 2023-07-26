@@ -54,12 +54,14 @@ Future<ProcessResult> doConvert(
           ? ['-j', '0']
           : ['-j', '1'];
 
-  final ProcessResult result = await Process.run('cjxl', [
+  final List<String> arguments = [
     sourcePath,
     outPath,
     ...losslessJpeg,
     ...distance,
-  ]);
+  ];
+
+  final ProcessResult result = await Process.run('cjxl', arguments);
 
   if (result.exitCode == 0) {
     final File inFile = File(sourcePath);
