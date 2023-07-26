@@ -54,14 +54,14 @@ But basically,
 
 ## Contributing
 
-I welcome any pull requests that will improve the script. Please feel free to submit pull requests and I'll check them out. There is no coding guide, no rules to follow. As long as you tested your pull request and it works, just submit it! Thanks!
+I welcome any pull requests that will improve the app. Please feel free to submit pull requests and I'll check them out. There is no coding guide, no rules to follow. As long as you tested your pull request and it works, just submit it! Thanks!
 
 ### Contributors!
 
-Thank you very much to everyone who contributed code to this humble Python script. I really appreciate it, and I'm sure everyone trying to adopt JPEG XL appreciates it, too!
+Thank you very much to everyone who contributed code to this humble app. I really appreciate it, and I'm sure everyone trying to adopt JPEG XL appreciates it, too!
 
 * [perk11](https://github.com/perk11) - Keep original file mtime in converted JXL, implement multithreading
-    * Sorry, your contribution and the feature was lost because the app was completely rebuilt from scratch!
+    * Sorry, your contribution and the feature was lost because the app was completely rebuilt from scratch! However, the new version still keeps the last modification time, so your effort was not completely in vain.
 
 ## Disclaimer
 
