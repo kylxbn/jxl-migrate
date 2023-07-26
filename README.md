@@ -1,5 +1,7 @@
 # jxl-migrate
 
+![jxl-migrate Screenshot](doc/screenshot.png?raw=true Screenshot of JXL Migrate showing the user interface)
+
 `jxl-migrate` is a simple app to convert all applicable image files recursively in a folder to JPEG XL (JXL, `image/jxl`).
 
 In case the conversion of an image is successful, the original image ise deleted and the JXL file will be all that's left.
