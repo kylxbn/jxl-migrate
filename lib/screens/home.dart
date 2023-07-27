@@ -156,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
     for (XFile xf in details.files) {
       File? file = File(xf.path);
       while (file != null) {
-        print(file.path);
         final FileStat fileStat = await file.stat();
         if (fileStat.type == FileSystemEntityType.directory) {
           // is directory
