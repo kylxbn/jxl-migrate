@@ -9,6 +9,10 @@ const _supportedImageExtensions = [
   'png',
 ];
 
+const _losslessExtensions = [
+  'png', 'gif',
+];
+
 String replaceExtension(String filename, String newExtension) {
   final dotIndex = filename.lastIndexOf('.');
   if (dotIndex < 0) {
@@ -34,9 +38,13 @@ bool filenameExtensionIsImage(File f) {
 
 bool isImageLossless(File file) {
   final extension = getFileExtension(file);
-  return extension == 'png';
+
+  if (extension != 'webp') {
+    return _losslessExtensions.contains(extension);
+  }
 
   // TODO: WebP can be lossy or lossless, so we gotta check.
+  return true; // for now, return true, since we don't handle WebP anyway
 }
 
 Future<ProcessResult> doConvert(

@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:jxlmigrate/models/image_file.dart';
 
 class FileList extends StatelessWidget {
-  const FileList({super.key, required this.files, required this.loading});
+  const FileList(
+      {super.key,
+      required this.files,
+      required this.loading,
+      required this.hovering});
 
   final List<ImageFile> files;
   final bool loading;
+  final bool hovering;
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +63,15 @@ class FileList extends StatelessWidget {
             ),
           )
         else
-          const Expanded(
+          Expanded(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.all(8),
-                child: Text('Please add files using the Files menu.'),
+                padding: const EdgeInsets.all(8),
+                child: Text(hovering
+                    ? 'Drop files to add them.'
+                    : 'Please add files here using drag & drop or by using the File menu.',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           )

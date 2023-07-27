@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 
 import 'package:file_selector/file_selector.dart';
@@ -26,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ImageFile> _files = [];
 
   bool _filesLoading = false;
+  bool _converting = false;
+  bool _hovering = false;
 
   late final SharedPreferences _prefs;
 
@@ -66,7 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (BuildContext context) {
             return AlertDialog(
               title: const Text('Missing Requirements'),
-              content: const Text('Make sure that the cjxl binary is in your PATH.'),
+              content:
+                  const Text('Make sure that the cjxl binary is in your PATH.'),
               actions: <Widget>[
                 TextButton(
                   child: const Text('OK'),
@@ -89,15 +93,20 @@ class _HomeScreenState extends State<HomeScreen> {
         menuChildren: <MenuEntry>[
           MenuEntry(
             label: 'Add files to convert...',
-            onPressed: _addFiles,
+            onPressed: (_filesLoading || _converting) ? null : _addFiles,
           ),
           MenuEntry(
             label: 'Start conversion',
-            onPressed: (_files.isEmpty || (!_requiredAppsExist)) ? null : _startConvert,
+            onPressed: (_files.isEmpty ||
+                    (!_requiredAppsExist) ||
+                    _filesLoading ||
+                    _converting)
+                ? null
+                : _startConvert,
           ),
           MenuEntry(
             label: 'Clear files',
-            onPressed: _files.isEmpty
+            onPressed: _files.isEmpty || _filesLoading || _converting
                 ? null
                 : () {
                     setState(() {
@@ -111,8 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
               showAboutDialog(
                 context: this.context,
                 applicationName: 'jxl-migrate',
-                applicationVersion: 'v0.3',
-                applicationIcon: Image.asset('assets/icons/icon.png', width: 128),
+                applicationVersion: 'v0.3.1',
+                applicationIcon:
+                    Image.asset('assets/icons/icon.png', width: 128),
                 applicationLegalese: '© 2023 KYLXBN',
               );
             },
@@ -132,22 +142,59 @@ class _HomeScreenState extends State<HomeScreen> {
       final List<FileSystemEntity> entities =
           await dir.list(recursive: true).toList();
       final foundFiles = entities.whereType<File>().toList();
+      _actuallyAddFiles(foundFiles);
       setState(() {
-        _files.addAll(
-          foundFiles.where(filenameExtensionIsImage).map((f) {
-            final String extension =
-                getFileExtension(f) == 'jpg' ? 'jpeg' : getFileExtension(f);
-            return ImageFile(
-              name: basename(f.path),
-              path: f.path,
-              jpeg: extension == 'jpeg',
-              lossless: isImageLossless(f),
-            );
-          }).toList(),
-        );
         _filesLoading = false;
       });
     }
+  }
+
+  void _addFilesFromDrop(DropDoneDetails details) async {
+    setState(() {
+      _filesLoading = true;
+    });
+    for (XFile xf in details.files) {
+      File? file = File(xf.path);
+      while (file != null) {
+        print(file.path);
+        final FileStat fileStat = await file.stat();
+        if (fileStat.type == FileSystemEntityType.directory) {
+          // is directory
+          final dir = Directory(file.path);
+          final List<FileSystemEntity> entities =
+            await dir.list(recursive: true).toList();
+          final foundFiles = entities.whereType<File>().toList();
+          _actuallyAddFiles(foundFiles);
+        } else if (fileStat.type == FileSystemEntityType.file) {
+          // is file
+          _actuallyAddFiles([file]);
+        } else if (fileStat.type == FileSystemEntityType.link) {
+          // is link
+          file = File(await file.resolveSymbolicLinks());
+          continue;
+        }
+        file = null;
+      }
+    }
+    setState(() {
+      _filesLoading = false;
+    });
+  }
+
+  void _actuallyAddFiles(List<File> files) {
+    final imageFiles = files.where(filenameExtensionIsImage).map((f) {
+      final String extension =
+          getFileExtension(f) == 'jpg' ? 'jpeg' : getFileExtension(f);
+      return ImageFile(
+        name: basename(f.path),
+        path: f.path,
+        jpeg: extension == 'jpeg',
+        lossless: isImageLossless(f),
+      );
+    }).toList();
+    setState(() {
+      _files.addAll(imageFiles);
+    });
   }
 
   void _changeSettings(ConvertSettings which, bool val) async {
@@ -172,6 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final filesToProcess = [..._files];
     setState(() {
       _log.clear();
+      _converting = true;
     });
 
     for (final imageFile in filesToProcess) {
@@ -188,7 +236,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    _addLog('Done.');
+    _addLog('Done.', extra: () {
+      _converting = false;
+    });
   }
 
   @override
@@ -216,7 +266,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         right: BorderSide(color: Colors.black45),
                       ),
                     ),
-                    child: FileList(files: _files, loading: _filesLoading),
+                    child: DropTarget(
+                      onDragDone: _addFilesFromDrop,
+                      onDragEntered: (details) {
+                        setState(() {
+                          _hovering = true;
+                        });
+                      },
+                      onDragExited: (details) {
+                        setState(() {
+                          _hovering = false;
+                        });
+                      },
+                      child: FileList(
+                        files: _files,
+                        loading: _filesLoading,
+                        hovering: _hovering,
+                      ),
+                    ),
                   ),
                 ),
                 Expanded(
