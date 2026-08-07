@@ -1,1 +1,4 @@
 demo-img/*.jxl
+__pycache__/
+*.py[cod]
+.pytest_cache/
